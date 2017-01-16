@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<recipe>
+    <Processes>
+        <Process>
+            <Name>assemble</Name>
+            <InputMaterials>
+                <InputMaterial>Bearing</InputMaterial>
+                <InputMaterial>Box</InputMaterial>
+                <InputMaterial>AssemblyTray</InputMaterial>
+            </InputMaterials>
+            <OutputMaterials>
+                <OutputMaterial>AssembledBearingBox</OutputMaterial>
+                <OutputMaterial>AssemblyTray</OutputMaterial>
+            </OutputMaterials>
+        </Process>
+    </Processes>
+</recipe>
