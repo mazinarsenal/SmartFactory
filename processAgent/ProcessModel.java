@@ -56,4 +56,12 @@ public class ProcessModel {
 		return this.status == Status.READY;
 	}
 
+	void reciveMissingMaterial(String material) {
+		this.missingMaterials.remove(material);
+	}
+
+	boolean noMissingMaterials() {
+		return this.missingMaterials.size() == 0;
+	}
+
 }

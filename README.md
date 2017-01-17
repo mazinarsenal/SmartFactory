@@ -4,4 +4,4 @@ To stat a single agent
 start EJADE
 then create a run configuration as follows:
 Main class: jade.Boot
-Argument: -container -port 1099 -host localhost yourAgentName:yourAgentpackage.YourAgentClassName
+Argument: -container -port 1099 -host localhost SmartFactoryLauncher:launcherAgent.LauncherAgent

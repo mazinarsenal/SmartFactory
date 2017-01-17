@@ -1,6 +1,7 @@
 package processAgent;
 
 import jade.core.Agent;
+import jade.core.behaviours.CyclicBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPANames;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -11,6 +12,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.proto.ContractNetResponder;
+import partyDemo.HostAgent;
 
 public class ProcessAgent extends Agent {
 
@@ -86,8 +88,31 @@ public class ProcessAgent extends Agent {
 	}
 
 	private void receiveMaterials() {
-		// TODO Auto-generated method stub
-		// Add behavior that will listen to inform msgs from robots
+		System.out.println("Waiting for needed input materials");
+		addBehaviour(new CyclicBehaviour(this) {
+			public void action() {
+				// listen if a greetings message arrives
+				ACLMessage msg = receive(MessageTemplate.MatchPerformative(ACLMessage.INFORM));
+
+				if (msg.getContent() != null) {
+
+					if (msg.getContent().startsWith("receive")) {
+						// receive msg should be in the form "receive itemName"
+						String receivedItem = msg.getContent().split(" ")[1];
+						System.out.println("Received: " + receivedItem);
+						ProcessAgent.this.processModel.addMissingMaterial(receivedItem);
+						if (ProcessAgent.this.processModel.noMissingMaterials()) {
+							System.out.println("All missing materials received .. Process starting");
+							ProcessAgent.this.doWake();
+						}
+					}
+				} else {
+					ProcessAgent.this.doWait();
+					block();
+				}
+			}
+		});
+		this.doWait();
 
 	}
 
