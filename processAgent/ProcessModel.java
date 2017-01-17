@@ -37,7 +37,7 @@ public class ProcessModel {
 
 	}
 
-	private void closeProcess() {
+	void closeProcess() {
 		// code to be executed when the process is finished
 		this.status = Status.READY;
 		System.out.println("Process finished");

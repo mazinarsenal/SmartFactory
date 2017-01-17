@@ -83,36 +83,40 @@ public class ProcessAgent extends Agent {
 			this.processModel.addMissingMaterial(material);
 		}
 		this.receiveMaterials();
+		this.processModel.startProcess();
+		this.doWait(5000);
+		this.processModel.closeProcess();
 
-		return null;
+		return "Success";
 	}
 
 	private void receiveMaterials() {
-		System.out.println("Waiting for needed input materials");
-		addBehaviour(new CyclicBehaviour(this) {
-			public void action() {
-				// listen if a greetings message arrives
-				ACLMessage msg = receive(MessageTemplate.MatchPerformative(ACLMessage.INFORM));
+		System.out.println("Waiting for needed input materials " + this.processModel.missingMaterials);
 
-				if (msg.getContent() != null) {
+		// listen if a receive message arrives
+		this.doWait();
+		ACLMessage msg = this.receive(MessageTemplate.MatchPerformative(ACLMessage.INFORM));
 
-					if (msg.getContent().startsWith("receive")) {
-						// receive msg should be in the form "receive itemName"
-						String receivedItem = msg.getContent().split(" ")[1];
-						System.out.println("Received: " + receivedItem);
-						ProcessAgent.this.processModel.addMissingMaterial(receivedItem);
-						if (ProcessAgent.this.processModel.noMissingMaterials()) {
-							System.out.println("All missing materials received .. Process starting");
-							ProcessAgent.this.doWake();
-						}
-					}
-				} else {
-					ProcessAgent.this.doWait();
-					block();
+		if (msg.getContent() != null) {
+
+			if (msg.getContent().startsWith("receive")) {
+				// receive msg should be in the form "receive itemName"
+				String receivedItem = msg.getContent().split(" ")[1];
+				System.out.println("Received: " + receivedItem);
+				this.processModel.reciveMissingMaterial(receivedItem);
+				if (this.processModel.noMissingMaterials()) {
+					System.out.println("All missing materials are received .. Process starting");
+
 				}
 			}
-		});
-		this.doWait();
+		} else {
+
+			this.doWait();
+		}
+
+		if (this.processModel.noMissingMaterials() == false) {
+			this.receiveMaterials();
+		}
 
 	}
 
@@ -156,7 +160,7 @@ public class ProcessAgent extends Agent {
 				throws FailureException {
 			System.out.println("Agent " + getLocalName() + ": Proposal accepted");
 			// We expect to receive the missing materials
-			String action = cfp.getContent();
+			String action = accept.getContent();
 			String actionResult = ProcessAgent.this.startProcess(action);
 			if (actionResult != null) {
 				System.out.println("Agent " + getLocalName() + ": Action: " + action + " successfully performed");

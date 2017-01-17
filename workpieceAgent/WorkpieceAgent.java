@@ -3,6 +3,7 @@ package workpieceAgent;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Vector;
 
 import jade.core.AID;
@@ -28,9 +29,12 @@ public class WorkpieceAgent extends Agent {
 	private Recipe recipe;
 	private int stepN;
 	private Process currentProcess;
+	private int[] currentProcessLocation;
+	private HashMap<String, RobotDestination> itemsToMove;
 
 	public WorkpieceAgent() {
 		this.stepN = 0;
+		this.itemsToMove = new HashMap<String, RobotDestination>();
 	}
 
 	protected void setup() {
@@ -39,6 +43,8 @@ public class WorkpieceAgent extends Agent {
 		this.serialN = (int) this.getArguments()[1];
 		this.recipeLoader = new RecipeLoader(this.recipesPath);
 		this.recipe = this.recipeLoader.load(itemType);
+		// System.out.println("Recipe: " +
+		// this.recipe.getProcesses().get(0).getInputMaterials());
 
 		this.executeNextStep();
 		// this.delegate("store box 123");
@@ -49,10 +55,14 @@ public class WorkpieceAgent extends Agent {
 
 	private void executeNextStep() {
 
-		this.currentProcess = this.recipe.getProcesses().get(this.stepN);
-		this.delegate("assembleBearingBox", "process");
+		if (this.stepN < this.recipe.getProcesses().size()) {
+			this.currentProcess = this.recipe.getProcesses().get(this.stepN);
+			this.delegate("assembleBearingBox", "process");
 
-		this.stepN += 1;
+			this.stepN += 1;
+		} else {
+			System.out.println(this.getAID() + " completed .. Terminating workpiece agent");
+		}
 	}
 
 	void delegate(String task, String taskType) {
@@ -189,6 +199,7 @@ public class WorkpieceAgent extends Agent {
 						accept = reply;
 						processLocation[0] = Integer.parseInt(msg.getContent().split(" ")[1]);
 						processLocation[1] = Integer.parseInt(msg.getContent().split(" ")[2]);
+						WorkpieceAgent.this.currentProcessLocation = processLocation;
 					}
 				}
 			}
@@ -199,13 +210,18 @@ public class WorkpieceAgent extends Agent {
 				// Pass the missing materials
 				String missingMaterials = "";
 				for (String material : WorkpieceAgent.this.currentProcess.getInputMaterials()) {
-					missingMaterials += material;
+					missingMaterials += material + " ";
 				}
 				accept.setContent(missingMaterials);
 				//////////////////////////
 				// Update workpieceAgent internal references
 				// get all materials
 			}
+		}
+
+		protected void handleInform(ACLMessage inform) {
+			super.handleInform(inform);
+			WorkpieceAgent.this.executeNextStep();
 		}
 	}
 
@@ -233,5 +249,10 @@ public class WorkpieceAgent extends Agent {
 
 		}
 
+	}
+
+	class RobotDestination {
+		String agentName;
+		int[] location;
 	}
 }
