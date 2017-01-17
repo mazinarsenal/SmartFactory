@@ -24,14 +24,11 @@ import com.sun.net.httpserver.HttpServer;
 
 public class OrderHandlerAgent extends Agent {
 
-	private String recipesPath = "c:\\Users\\Mazin\\workspace\\SmartFactory\\src\\recipeManager\\";
-	private RecipeLoader recipeLoader;
-
 	private PlatformController container;
 	private int serialN;
 
 	public OrderHandlerAgent() {
-		this.recipeLoader = new RecipeLoader(this.recipesPath);
+
 		this.serialN = 0;
 	}
 
@@ -73,15 +70,19 @@ public class OrderHandlerAgent extends Agent {
 	}
 
 	private void createOrder(String order) {
+		this.serialN += 1;
 		String[] orderStrings = order.split(" ");
 		String itemName = orderStrings[1];
-		int qty = Integer.valueOf(orderStrings[2]);
+		Object[] args = { itemName, this.serialN };
+		System.out.println("Processing: " + order);
+
+		// int qty = Integer.valueOf(orderStrings[2]);
 
 		// Recipe recipe = this.recipeLoader.load(itemName);
 		// To Do : Create workpiece agent from recipe
 		String localName = "Workpiece_" + this.serialN;
 		try {
-			AgentController workpiece = this.container.createNewAgent(localName, "workpieceAgent.WorkpieceAgent", null);
+			AgentController workpiece = this.container.createNewAgent(localName, "workpieceAgent.WorkpieceAgent", args);
 			workpiece.start();
 		} catch (Exception e) {
 			System.err.println("Exception while adding workpiece agent  " + this.serialN + " " + e);

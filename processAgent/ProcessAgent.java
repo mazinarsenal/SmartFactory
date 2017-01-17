@@ -1,8 +1,4 @@
-package storeAgent;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+package processAgent;
 
 import jade.core.Agent;
 import jade.domain.DFService;
@@ -15,23 +11,19 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.proto.ContractNetResponder;
-import storeAgent.StoreModel.Item;
 
-@SuppressWarnings("serial")
-public class StoreAgent extends Agent {
-	StoreModel model;
+public class ProcessAgent extends Agent {
 
-	final static String[] OPS = { "store", "fetch" };
-	final static Set<String> OPERATIONS = new HashSet<String>(Arrays.asList(OPS));
+	private ProcessModel processModel;
+	private String[] operations;
 	private int[] location;
 
-	// Constructors
-	public StoreAgent() {
-		this.model = new StoreModel();
+	public ProcessAgent() {
+		this.processModel = new ProcessModel();
 	}
 
-	// Agent setup
-	protected void setup() {
+	public void setup() {
+
 		this.unpackArgs();
 		try {
 			System.out.println(getLocalName() + " setting up");
@@ -39,88 +31,74 @@ public class StoreAgent extends Agent {
 			// create the agent description of itself
 			DFAgentDescription dfd = new DFAgentDescription();
 			dfd.setName(getAID());
-			for (String operation : this.OPERATIONS) {
+			for (String operation : this.operations) {
 				ServiceDescription service = new ServiceDescription();
 				service.setName(operation);
-				service.setType("Storage");
+				service.setType("Process");
 				dfd.addServices(service);
 			}
 
 			DFService.register(this, dfd);
 		} catch (Exception e) {
-			System.out.println("Saw exception in StoreAgent: " + e);
+			System.out.println("Saw exception in ProcessAgent: " + e);
 			e.printStackTrace();
 		}
+
 		System.out.println("Agent " + getLocalName() + " waiting for CFP...");
 		MessageTemplate template = MessageTemplate.and(
 				MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET),
 				MessageTemplate.MatchPerformative(ACLMessage.CFP));
 
 		addBehaviour(new ContractNetBidder(this, template));
+
 	}
 
 	private void unpackArgs() {
-		// Expected args : {int[] location}
-		this.location = (int[]) this.getArguments()[0];
+		// expected args : {String[] operations, int[] location}
+		this.operations = (String[]) this.getArguments()[0];
+		this.location = (int[]) this.getArguments()[1];
 
 	}
 
-	private boolean evaluateAction(String action) {
+	public boolean evaluateAction(String action) {
+		// we assume the action string is in the form "operation
+		// workpieceSerialNo"
 		String operation = action.split(" ")[0];
-		String type = action.split(" ")[1];
-		System.out.println("Evaluating operation: " + operation);
-		System.out.println(StoreAgent.OPERATIONS.contains(operation));
-		if (StoreAgent.OPERATIONS.contains(operation)) {
-			if (operation.equals("store")) {
-				// System.out.println(this.model.getFreeSpace());
-				return this.model.getFreeSpace() > 0;
-			}
-			if (operation.equals("fetch")) {
-				return model.hasItem(type);
+		String serialN = action.split(" ")[1];
+		for (String op : this.operations) {
+			if (op.equals(operation)) {
+				return true;
 			}
 		}
 		return false;
 
 	}
 
-	private String propose(String action) throws RefuseException {
-		// If we are able to propose, return the location of the store
-		String operation = action.split(" ")[0];
-		String type = action.split(" ")[1];
-		if (StoreAgent.OPERATIONS.contains(operation)) {
-			// ToDo check if we have free space for store and check if we have
-			// item
-			if (operation.equals("store")) {
-				return String.valueOf(this.location[0]) + " " + String.valueOf(this.location[1]);
-			}
-			if (operation.equals("fetch")) {
-				return String.valueOf(this.location[0]) + " " + String.valueOf(this.location[1]);
-			}
+	public String startProcess(String action) {
+		this.processModel.setBusy();
+		String[] missingMaterials = action.split(" ");
+		for (String material : missingMaterials) {
+			this.processModel.addMissingMaterial(material);
 		}
-		System.out.println("Agent " + getLocalName() + ": Refuse to propose " + type);
-		throw new RefuseException("Failed to propose");
+		this.receiveMaterials();
 
-	}
-
-	private String performAction(String action) {
-		String operation = action.split(" ")[0];
-		String type = action.split(" ")[1];
-		if (operation.equals("store")) {
-			// String serialN = action.split(" ")[2];
-			// this.model.storeItem(this.model.new Item(type, serialN));
-			this.model.reserveStorage();
-			return action;
-		}
-		if (operation.equals("fetch")) {
-			this.model.prepareForLoading(type);
-			return type + "Prepared for Loading";
-		}
 		return null;
 	}
 
-	//////////////////////////////////////////////
+	private void receiveMaterials() {
+		// TODO Auto-generated method stub
+		// Add behavior that will listen to inform msgs from robots
+
+	}
+
+	public String propose(String action) {
+		// proposla should be in the form of "queue size locationx locationy"
+		return "0 " + String.valueOf(this.location[0]) + " " + String.valueOf(this.location[1]);
+	}
+
+	//////////////////////////////////////////////////////////
 	// Behaviours
-	//////////////////////////////////////////////
+	/////////////////////////////////////////////////////////
 
 	class ContractNetBidder extends ContractNetResponder {
 		public ContractNetBidder(Agent a, MessageTemplate mt) {
@@ -152,8 +130,9 @@ public class StoreAgent extends Agent {
 		protected ACLMessage handleAcceptProposal(ACLMessage cfp, ACLMessage propose, ACLMessage accept)
 				throws FailureException {
 			System.out.println("Agent " + getLocalName() + ": Proposal accepted");
+			// We expect to receive the missing materials
 			String action = cfp.getContent();
-			String actionResult = performAction(action);
+			String actionResult = ProcessAgent.this.startProcess(action);
 			if (actionResult != null) {
 				System.out.println("Agent " + getLocalName() + ": Action: " + action + " successfully performed");
 				ACLMessage inform = accept.createReply();

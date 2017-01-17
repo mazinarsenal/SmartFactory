@@ -1,12 +1,19 @@
 package processAgent;
 
+import java.util.ArrayList;
+
 public class ProcessModel {
 
 	enum Status {
-		READY, BUSY, FAULT
+		READY, BUSY, FAULT, WAITING
 	}
 
 	Status status = Status.READY;
+	ArrayList<String> missingMaterials;
+
+	public ProcessModel() {
+		this.missingMaterials = new ArrayList<String>();
+	}
 
 	// Code to start the process
 	void startProcess() {
@@ -36,4 +43,17 @@ public class ProcessModel {
 		System.out.println("Process finished");
 
 	}
+
+	void addMissingMaterial(String material) {
+		this.missingMaterials.add(material);
+	}
+
+	void setBusy() {
+		this.status = Status.BUSY;
+	}
+
+	boolean isReady() {
+		return this.status == Status.READY;
+	}
+
 }

@@ -8,7 +8,7 @@ import javax.xml.bind.Unmarshaller;
 
 public class Test {
 
-	private static final String xmlFilePath = "c:\\Users\\Mazin\\workspace\\SmartFactory\\src\\recipeManagerAgent\\assemble.xml";
+	private static final String xmlFilePath = "c:\\Users\\Mazin\\workspace\\SmartFactory\\recipes\\assembledBearingBox.xml";
 
 	public static void main(String[] args) throws Exception {
 		JAXBContext jc = JAXBContext.newInstance(Recipe.class);
@@ -16,7 +16,7 @@ public class Test {
 
 		Recipe recipe = new Recipe();
 		Process assemble = new Process();
-		assemble.setName("assemble");
+		assemble.setName("assembleBearingBox");
 		assemble.getInputMaterials().add("Bearing");
 		assemble.getInputMaterials().add("Box");
 		assemble.getInputMaterials().add("AssemblyTray");

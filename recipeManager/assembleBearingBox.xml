@@ -2,7 +2,7 @@
 <recipe>
     <Processes>
         <Process>
-            <Name>assemble</Name>
+            <Name>assembleBearingBox</Name>
             <InputMaterials>
                 <InputMaterial>Bearing</InputMaterial>
                 <InputMaterial>Box</InputMaterial>

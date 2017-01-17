@@ -1,9 +1,22 @@
 package robotAgent;
 
+import storeAgent.StoreModel.Item;
+
 public class RobotModel {
-	float x;
-	float y;
-	float speed = 1;
+	private float x;
+	private float y;
+	private float speed = 1;
+
+	enum Status {
+		BUSY, FAILURE, READY
+	};
+
+	private Status status;
+	private Item load;
+
+	public RobotModel() {
+		this.status = Status.READY;
+	}
 
 	void goToDest(final float xg, final float yg, final RobotModel robot) {
 		// Simulate straight line motion
@@ -32,6 +45,12 @@ public class RobotModel {
 
 			}
 		}).start();
+	}
+
+	public void pickup(Item load) {
+		if (this.load == null) {
+			this.load = load;
+		}
 	}
 
 }

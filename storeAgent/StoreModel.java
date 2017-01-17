@@ -13,9 +13,13 @@ public class StoreModel {
 	private HashMap<String, StorageSlot> storeSerialIndex = new HashMap<String, StorageSlot>();
 	private HashMap<String, LinkedList<StorageSlot>> storeTypeIndex = new HashMap<String, LinkedList<StorageSlot>>();
 	private int freeSpace;
+	private int reservedSpace;
+	private HashMap<String, Item> loadingSpace;
 
 	public StoreModel() {
 		this.freeSpace = this.storeWidth * this.storeHeight;
+		this.loadingSpace = new HashMap<String, Item>();
+		this.reservedSpace = 0;
 	}
 
 	// Getters
@@ -32,7 +36,7 @@ public class StoreModel {
 	}
 
 	public int getFreeSpace() {
-		return this.freeSpace;
+		return this.freeSpace - this.reservedSpace;
 	}
 
 	// Methods
@@ -61,11 +65,19 @@ public class StoreModel {
 		} else {
 			itemsList.add(slot);
 		}
-		this.freeSpace = this.freeSpace + 1;
+
+		this.freeSpace = this.freeSpace - 1;
 
 	}
 
 	Item fetchItem(String itemType) {
+		Item item = this.loadingSpace.get(itemType);
+		this.loadingSpace.remove(itemType);
+		return item;
+
+	}
+
+	void prepareForLoading(String itemType) {
 		LinkedList<StorageSlot> list = this.storeTypeIndex.get(itemType);
 		// If this item type is in store
 		Item item = null;
@@ -83,9 +95,13 @@ public class StoreModel {
 				this.storeTypeIndex.remove(itemType);
 			}
 		}
-		this.freeSpace = this.freeSpace - 1;
-		return item;
+		this.freeSpace = this.freeSpace + 1;
+		this.reservedSpace -= 1;
+		this.loadingSpace.put(itemType, item);
+	}
 
+	void reserveStorage() {
+		this.reservedSpace += 1;
 	}
 
 	boolean hasItem(String itemType) {

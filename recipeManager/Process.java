@@ -1,11 +1,12 @@
 package recipeManager;
 
+import java.io.Serializable;
 import java.util.*;
 import javax.xml.bind.annotation.*;
 
 @XmlRootElement
 @XmlAccessorType(XmlAccessType.FIELD)
-public class Process {
+public class Process implements Serializable {
 	@XmlElement(name = "Name")
 	private String name;
 	@XmlElementWrapper(name = "InputMaterials")
