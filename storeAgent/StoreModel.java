@@ -105,7 +105,7 @@ public class StoreModel {
 	}
 
 	boolean hasItem(String itemType) {
-		return this.storeTypeIndex.get(itemType) != null;
+		return this.storeTypeIndex.containsKey(itemType);
 	}
 
 	int countType(String type) {

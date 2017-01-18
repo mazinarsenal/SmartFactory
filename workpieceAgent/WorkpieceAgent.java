@@ -47,7 +47,7 @@ public class WorkpieceAgent extends Agent {
 		// this.recipe.getProcesses().get(0).getInputMaterials());
 
 		this.executeNextStep();
-		this.contractStorage("store Box");
+		// this.contractStorage("store Box");
 		// this.contractStorage("fetch box");
 		// this.contractTransport("move box");
 		// this.delegate("fetch box 123");
@@ -60,6 +60,12 @@ public class WorkpieceAgent extends Agent {
 		if (this.stepN < this.recipe.getProcesses().size()) {
 			this.currentProcess = this.recipe.getProcesses().get(this.stepN);
 			this.contractProcess("assembleBearingBox");
+			// this.contractStorage("store Box");
+			// this.contractTransport("move Box");
+			// this.contractStorage("store Bearing");
+			// this.contractTransport("move Bearing");
+			// this.contractStorage("store AssemblyTray");
+			// this.contractTransport("move AssemblyTray");
 
 			this.stepN += 1;
 		} else {
@@ -124,20 +130,19 @@ public class WorkpieceAgent extends Agent {
 
 	}
 
-	void contractTransport(String task) {
+	void contractTransport(String itemType, String operation) {
 		// task format: "move itemType"
 		// source info will come form this.currentProcessDestination
 		// destination info will be looked up in this.itemsToMove
 		// Find the service requested
-		String service = task.split(" ")[0];
-		String itemType = task.split(" ")[1];
+		String service = "move";
+
 		// Find all agents that can perform this service
 		DFAgentDescription[] serviceAgents = getServiceAgents(service);
 
 		if ((serviceAgents != null) && (serviceAgents.length > 0)) {
 
-			System.out
-					.println("Trying to delegate " + task + " to one out of " + serviceAgents.length + " responders.");
+			System.out.println("Trying to delegate move to one out of " + serviceAgents.length + " responders.");
 
 			// Fill the CFP message
 			ACLMessage msg = new ACLMessage(ACLMessage.CFP);
@@ -152,9 +157,18 @@ public class WorkpieceAgent extends Agent {
 			int[] to = this.itemsToMove.get(itemType).location;
 			String sourceAgentName = this.currentProcessDestination.agentAID.getName();
 			String distAgentName = this.itemsToMove.get(itemType).agentAID.getName();
-			// cfp format "move itemType serialN from.x from.y to.x to.y"
-			msg.setContent(task + " " + this.serialN + " " + from[0] + " " + from[1] + " " + to[0] + " " + to[1] + " "
-					+ sourceAgentName + " " + distAgentName);
+			// The opposite destination and source if the operation is fetch
+			if (operation.equals("fetch")) {
+				from = this.itemsToMove.get(itemType).location;
+				to = from = this.currentProcessDestination.location;
+				sourceAgentName = this.itemsToMove.get(itemType).agentAID.getName();
+				distAgentName = this.currentProcessDestination.agentAID.getName();
+
+			}
+			// cfp format "move itemType serialN from.x from.y to.x to.y
+			// operation"
+			msg.setContent("move " + itemType + " " + this.serialN + " " + from[0] + " " + from[1] + " " + to[0] + " "
+					+ to[1] + " " + sourceAgentName + " " + distAgentName + " " + operation);
 
 			System.out.println("Started contracting for task of type transport");
 			addBehaviour(new TransportDelegation(this, msg));
@@ -278,6 +292,7 @@ public class WorkpieceAgent extends Agent {
 				String missingMaterials = "";
 				for (String material : WorkpieceAgent.this.currentProcess.getInputMaterials()) {
 					missingMaterials += material + " ";
+					WorkpieceAgent.this.contractStorage("fetch " + material);
 				}
 				accept.setContent(missingMaterials);
 
@@ -344,6 +359,7 @@ public class WorkpieceAgent extends Agent {
 
 				WorkpieceAgent.this.itemsToMove.put(this.itemType,
 						new RobotDestination((AID) accept.getAllReceiver().next(), processLocation));
+				WorkpieceAgent.this.contractTransport(this.itemType, this.operation);
 
 			} else {
 				System.out.println("No bids received .. retrying again in 30 seconds");
@@ -355,7 +371,7 @@ public class WorkpieceAgent extends Agent {
 		protected void handleInform(ACLMessage inform) {
 			System.out
 					.println("Agent " + inform.getSender().getName() + " successfully performed the requested action");
-			WorkpieceAgent.this.contractTransport("move Box");
+			// WorkpieceAgent.this.contractTransport("move Box");
 		}
 
 	}
@@ -366,7 +382,7 @@ public class WorkpieceAgent extends Agent {
 
 		public TransportDelegation(Agent a, ACLMessage cfp) {
 			super(a, cfp);
-			this.operation = cfp.getContent().split(" ")[0];
+			this.operation = cfp.getContent().split(" ")[9];
 			this.itemType = cfp.getContent().split(" ")[1];
 		}
 
@@ -408,7 +424,7 @@ public class WorkpieceAgent extends Agent {
 			} else {
 				System.out.println("No bids received .. retrying again in 30 seconds");
 				WorkpieceAgent.this.doWait(30000);
-				WorkpieceAgent.this.contractTransport(this.operation + " " + this.itemType);
+				WorkpieceAgent.this.contractTransport(this.itemType, this.operation);
 			}
 		}
 

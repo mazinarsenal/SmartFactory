@@ -100,6 +100,7 @@ public class RobotAgent extends Agent {
 		AID receiverAID = new AID(receiver);
 		msg.addReceiver(receiverAID);
 		send(msg);
+		System.out.println(this.getAID().getName() + ":Sending notification - " + msg.getContent());
 
 	}
 

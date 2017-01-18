@@ -1,10 +1,12 @@
 package storeAgent;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
 import jade.core.Agent;
+import jade.core.behaviours.CyclicBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPANames;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -57,11 +59,23 @@ public class StoreAgent extends Agent {
 				MessageTemplate.MatchPerformative(ACLMessage.CFP));
 
 		addBehaviour(new ContractNetBidder(this, template));
+		addBehaviour(new RobotsListener(this));
 	}
 
 	private void unpackArgs() {
 		// Expected args : {int[] location}
 		this.location = (int[]) this.getArguments()[0];
+		this.initializeStorage((ArrayList<Item>) this.getArguments()[1]);
+		System.out.println(this.getAID().getName() + ": Initialized");
+		System.out.println(this.model.getFreeSpace());
+		System.out.println("Has box? " + this.model.hasItem("Box"));
+
+	}
+
+	private void initializeStorage(ArrayList<Item> initialItems) {
+		for (Item item : initialItems) {
+			this.model.storeItem(item);
+		}
 
 	}
 
@@ -169,6 +183,39 @@ public class StoreAgent extends Agent {
 		protected void handleRejectProposal(ACLMessage cfp, ACLMessage propose, ACLMessage reject) {
 			System.out.println("Agent " + getLocalName() + ": Proposal rejected");
 		}
+	}
+
+	class RobotsListener extends CyclicBehaviour {
+		StoreAgent agent;
+
+		public RobotsListener(StoreAgent agent) {
+			this.agent = agent;
+		}
+
+		@Override
+		public void action() {
+			MessageTemplate template = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
+			ACLMessage msg = this.agent.receive(template);
+			if (msg != null) {
+				String[] msgStrings = msg.getContent().split(" ");
+				String operation = msgStrings[0];
+				String itemType = msgStrings[1];
+				String serialN = msgStrings[2];
+				if (operation.equals("receive")) {
+					System.out.println(agent.getAID().getName() + ": received " + itemType + " " + serialN);
+					this.agent.model.storeItem(new Item(itemType, serialN));
+				}
+				if (operation.equals("pickup")) {
+					System.out.println(agent.getAID().getName() + ": dispatching " + itemType + " " + serialN);
+					this.agent.model.fetchItem(itemType);
+				}
+
+			} else {
+				block();
+			}
+
+		}
+
 	}
 
 }

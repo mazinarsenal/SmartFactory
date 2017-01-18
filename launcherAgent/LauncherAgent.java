@@ -1,5 +1,7 @@
 package launcherAgent;
 
+import java.util.ArrayList;
+
 import jade.core.Agent;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -7,6 +9,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.wrapper.AgentController;
 import jade.wrapper.ControllerException;
 import jade.wrapper.PlatformController;
+import storeAgent.StoreModel.Item;
 
 public class LauncherAgent extends Agent {
 	private PlatformController container;
@@ -54,7 +57,12 @@ public class LauncherAgent extends Agent {
 		// start the StoreAgentA
 		try {
 			int[] location = { 75, 25 };
-			Object[] args = { location };
+			ArrayList<Item> initialItems = new ArrayList<Item>();
+			initialItems.add(new Item("i1", "Box"));
+			initialItems.add(new Item("i2", "Box"));
+			initialItems.add(new Item("i3", "Bearing"));
+			initialItems.add(new Item("i4", "Bearing"));
+			Object[] args = { location, initialItems };
 			AgentController assemblyProcessAgent = this.container.createNewAgent("StoreAgentA", "storeAgent.StoreAgent",
 					args);
 			assemblyProcessAgent.start();
@@ -65,7 +73,10 @@ public class LauncherAgent extends Agent {
 		// start the StoreAgentB
 		try {
 			int[] location = { 75, 75 };
-			Object[] args = { location };
+			ArrayList<Item> initialItems = new ArrayList<Item>();
+			initialItems.add(new Item("i5", "AssemblyTray"));
+			initialItems.add(new Item("i6", "AssemblyTray"));
+			Object[] args = { location, initialItems };
 			AgentController assemblyProcessAgent = this.container.createNewAgent("StoreAgentB", "storeAgent.StoreAgent",
 					args);
 			assemblyProcessAgent.start();
@@ -77,7 +88,8 @@ public class LauncherAgent extends Agent {
 		// start the StoreAgentC
 		try {
 			int[] location = { 25, 75 };
-			Object[] args = { location };
+			ArrayList<Item> initialItems = new ArrayList<Item>();
+			Object[] args = { location, initialItems };
 			AgentController assemblyProcessAgent = this.container.createNewAgent("StoreAgentC", "storeAgent.StoreAgent",
 					args);
 			assemblyProcessAgent.start();
