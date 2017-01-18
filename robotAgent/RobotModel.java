@@ -47,10 +47,34 @@ public class RobotModel {
 		}).start();
 	}
 
-	public void pickup(Item load) {
+	void pickup(Item load) {
 		if (this.load == null) {
 			this.load = load;
 		}
+	}
+
+	public boolean isReady() {
+		return this.status == Status.READY;
+
+	}
+
+	public int[] getLocation() {
+		int[] location = { (int) this.x, (int) this.y };
+		return location;
+	}
+
+	void drop() {
+		this.load = null;
+	}
+
+	public void setBusy() {
+		this.status = Status.BUSY;
+
+	}
+
+	public void setReady() {
+		this.status = Status.READY;
+
 	}
 
 }

@@ -29,7 +29,7 @@ public class WorkpieceAgent extends Agent {
 	private Recipe recipe;
 	private int stepN;
 	private Process currentProcess;
-	private int[] currentProcessLocation;
+	private RobotDestination currentProcessDestination;
 	private HashMap<String, RobotDestination> itemsToMove;
 
 	public WorkpieceAgent() {
@@ -47,7 +47,9 @@ public class WorkpieceAgent extends Agent {
 		// this.recipe.getProcesses().get(0).getInputMaterials());
 
 		this.executeNextStep();
-		// this.delegate("store box 123");
+		this.contractStorage("store Box");
+		// this.contractStorage("fetch box");
+		// this.contractTransport("move box");
 		// this.delegate("fetch box 123");
 		// this.delegate("AssembleBearingBox", "process");
 
@@ -57,7 +59,7 @@ public class WorkpieceAgent extends Agent {
 
 		if (this.stepN < this.recipe.getProcesses().size()) {
 			this.currentProcess = this.recipe.getProcesses().get(this.stepN);
-			this.delegate("assembleBearingBox", "process");
+			this.contractProcess("assembleBearingBox");
 
 			this.stepN += 1;
 		} else {
@@ -65,7 +67,34 @@ public class WorkpieceAgent extends Agent {
 		}
 	}
 
-	void delegate(String task, String taskType) {
+	void contractProcess(String process) {
+		DFAgentDescription[] serviceAgents = getServiceAgents(process);
+		if ((serviceAgents != null) && (serviceAgents.length > 0)) {
+
+			System.out.println(
+					"Trying to delegate " + process + " to one out of " + serviceAgents.length + " responders.");
+
+			// Fill the CFP message
+			ACLMessage msg = new ACLMessage(ACLMessage.CFP);
+			for (DFAgentDescription agent : serviceAgents) {
+				msg.addReceiver(agent.getName());
+			}
+			msg.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
+			// We want to receive a reply in 10 secs
+			msg.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
+			msg.setContent(process + " " + this.serialN);
+
+			System.out.println("Started contracting for task of type process");
+			addBehaviour(new ProcessDelegation(this, msg));
+
+		} else {
+			System.out.println("No responder specified.");
+		}
+
+	}
+
+	void contractStorage(String task) {
+		// task in the form of "store/fetch itemType"
 		// Find the service requested
 		String service = task.split(" ")[0];
 		// Find all agents that can perform this service
@@ -85,18 +114,50 @@ public class WorkpieceAgent extends Agent {
 			// We want to receive a reply in 10 secs
 			msg.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
 			msg.setContent(task + " " + this.serialN);
-			if (taskType.equals("process")) {
-				System.out.println("Started contracting for task of type process");
-				addBehaviour(new ProcessDelegation(this, msg));
+
+			System.out.println("Started contracting for task of type storage");
+			addBehaviour(new StorageDelegation(this, msg));
+
+		} else {
+			System.out.println("No responder specified.");
+		}
+
+	}
+
+	void contractTransport(String task) {
+		// task format: "move itemType"
+		// source info will come form this.currentProcessDestination
+		// destination info will be looked up in this.itemsToMove
+		// Find the service requested
+		String service = task.split(" ")[0];
+		String itemType = task.split(" ")[1];
+		// Find all agents that can perform this service
+		DFAgentDescription[] serviceAgents = getServiceAgents(service);
+
+		if ((serviceAgents != null) && (serviceAgents.length > 0)) {
+
+			System.out
+					.println("Trying to delegate " + task + " to one out of " + serviceAgents.length + " responders.");
+
+			// Fill the CFP message
+			ACLMessage msg = new ACLMessage(ACLMessage.CFP);
+			for (DFAgentDescription agent : serviceAgents) {
+				msg.addReceiver(agent.getName());
 			}
-			if (taskType.equals("storage")) {
-				System.out.println("Started contracting for task of type storage");
-				addBehaviour(new StorageDelegation(this, msg));
-			}
-			if (taskType.equals("transport")) {
-				System.out.println("Started contracting for task of type transport");
-				addBehaviour(new TransportDelegation(this, msg));
-			}
+			msg.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
+			// We want to receive a reply in 10 secs
+			msg.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
+
+			int[] from = this.currentProcessDestination.location;
+			int[] to = this.itemsToMove.get(itemType).location;
+			String sourceAgentName = this.currentProcessDestination.agentAID.getName();
+			String distAgentName = this.itemsToMove.get(itemType).agentAID.getName();
+			// cfp format "move itemType serialN from.x from.y to.x to.y"
+			msg.setContent(task + " " + this.serialN + " " + from[0] + " " + from[1] + " " + to[0] + " " + to[1] + " "
+					+ sourceAgentName + " " + distAgentName);
+
+			System.out.println("Started contracting for task of type transport");
+			addBehaviour(new TransportDelegation(this, msg));
 
 		} else {
 			System.out.println("No responder specified.");
@@ -123,6 +184,12 @@ public class WorkpieceAgent extends Agent {
 		 * System.out.println(s.getName()); }
 		 */
 		return services;
+	}
+
+	final static double findDistance(int[] loc1, int[] loc2) {
+		int dx = loc1[0] - loc2[1];
+		int dy = loc1[0] - loc2[1];
+		return Math.sqrt(dx * dx + dy * dy);
 	}
 
 	/////////////////////////////////////////
@@ -199,7 +266,7 @@ public class WorkpieceAgent extends Agent {
 						accept = reply;
 						processLocation[0] = Integer.parseInt(msg.getContent().split(" ")[1]);
 						processLocation[1] = Integer.parseInt(msg.getContent().split(" ")[2]);
-						WorkpieceAgent.this.currentProcessLocation = processLocation;
+
 					}
 				}
 			}
@@ -213,9 +280,10 @@ public class WorkpieceAgent extends Agent {
 					missingMaterials += material + " ";
 				}
 				accept.setContent(missingMaterials);
-				//////////////////////////
-				// Update workpieceAgent internal references
-				// get all materials
+
+				WorkpieceAgent.this.currentProcessDestination = new RobotDestination(
+						(AID) accept.getAllReceiver().next(), processLocation);
+
 			}
 		}
 
@@ -226,33 +294,133 @@ public class WorkpieceAgent extends Agent {
 	}
 
 	class StorageDelegation extends ContractNetDelegate {
+		String itemType;
+		String operation;
 
 		public StorageDelegation(Agent a, ACLMessage cfp) {
 			super(a, cfp);
-			// TODO Auto-generated constructor stub
+			this.operation = cfp.getContent().split(" ")[0];
+			this.itemType = cfp.getContent().split(" ")[1];
 		}
 
 		protected void handleAllResponses(Vector responses, Vector acceptances) {
+			if (responses.size() < nResponders) {
+				// Some responder didn't reply within the specified
+				// timeout
+				System.out.println("Timeout expired: missing " + (nResponders - responses.size()) + " responses");
+			}
+			// Evaluate proposals.
+			double bestProposal = 99999;
+			AID bestProposer = null;
+			ACLMessage accept = null;
+			Enumeration e = responses.elements();
+			int[] processLocation = { 0, 0 };
+			while (e.hasMoreElements()) {
+				ACLMessage msg = (ACLMessage) e.nextElement();
 
+				if (msg.getPerformative() == ACLMessage.PROPOSE) {
+					ACLMessage reply = msg.createReply();
+					reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
+					acceptances.addElement(reply);
+					// We assume the proposal msg is in the form of Location.x
+					// Location.Y
+					int[] storeLocation = { Integer.parseInt(msg.getContent().split(" ")[0]),
+							Integer.parseInt(msg.getContent().split(" ")[1]) };
+					double proposal = WorkpieceAgent.this.findDistance(storeLocation,
+							WorkpieceAgent.this.currentProcessDestination.location);
+					if (proposal < bestProposal) {
+						bestProposal = proposal;
+						bestProposer = msg.getSender();
+						accept = reply;
+						processLocation = storeLocation;
+
+					}
+				}
+			}
+			// Accept the proposal of the best proposer
+			if (accept != null) {
+				System.out.println("Accepting proposal " + bestProposal + " from responder " + bestProposer.getName());
+				accept.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+
+				WorkpieceAgent.this.itemsToMove.put(this.itemType,
+						new RobotDestination((AID) accept.getAllReceiver().next(), processLocation));
+
+			} else {
+				System.out.println("No bids received .. retrying again in 30 seconds");
+				WorkpieceAgent.this.doWait(30000);
+				WorkpieceAgent.this.contractStorage(this.operation + " " + this.itemType);
+			}
+		}
+
+		protected void handleInform(ACLMessage inform) {
+			System.out
+					.println("Agent " + inform.getSender().getName() + " successfully performed the requested action");
+			WorkpieceAgent.this.contractTransport("move Box");
 		}
 
 	}
 
 	class TransportDelegation extends ContractNetDelegate {
+		String itemType;
+		String operation;
 
 		public TransportDelegation(Agent a, ACLMessage cfp) {
 			super(a, cfp);
-			// TODO Auto-generated constructor stub
+			this.operation = cfp.getContent().split(" ")[0];
+			this.itemType = cfp.getContent().split(" ")[1];
 		}
 
 		protected void handleAllResponses(Vector responses, Vector acceptances) {
+			if (responses.size() < nResponders) {
+				// Some responder didn't reply within the specified
+				// timeout
+				System.out.println("Timeout expired: missing " + (nResponders - responses.size()) + " responses");
+			}
+			// Evaluate proposals.
+			double bestProposal = 99999;
+			AID bestProposer = null;
+			ACLMessage accept = null;
+			Enumeration e = responses.elements();
+			int[] processLocation = { 0, 0 };
+			while (e.hasMoreElements()) {
+				ACLMessage msg = (ACLMessage) e.nextElement();
 
+				if (msg.getPerformative() == ACLMessage.PROPOSE) {
+					ACLMessage reply = msg.createReply();
+					reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
+					acceptances.addElement(reply);
+					// We assume the proposal msg is in the form of distance
+
+					int proposal = Integer.parseInt(msg.getContent().split(" ")[0]);
+					if (proposal < bestProposal) {
+						bestProposal = proposal;
+						bestProposer = msg.getSender();
+						accept = reply;
+
+					}
+				}
+			}
+			// Accept the proposal of the best proposer
+			if (accept != null) {
+				System.out.println("Accepting proposal " + bestProposal + " from responder " + bestProposer.getName());
+				accept.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+
+			} else {
+				System.out.println("No bids received .. retrying again in 30 seconds");
+				WorkpieceAgent.this.doWait(30000);
+				WorkpieceAgent.this.contractTransport(this.operation + " " + this.itemType);
+			}
 		}
 
 	}
 
 	class RobotDestination {
-		String agentName;
+		AID agentAID;
 		int[] location;
+
+		public RobotDestination(AID agentAID, int[] location) {
+			this.agentAID = agentAID;
+			this.location = location;
+		}
 	}
 }

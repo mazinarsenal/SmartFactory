@@ -1,6 +1,7 @@
 package storeAgent;
 
 import storeAgent.StoreModel;
+import storeAgent.StoreModel.Item;
 import storeAgent.StoreModel.StorageSlot;
 
 public class Test {
@@ -14,8 +15,8 @@ public class Test {
 		// System.out.println(slot.x);
 		// System.out.println(slot.y);
 		// Test store
-		storeM.storeItem(storeM.new Item("12", "box"));
-		storeM.storeItem(storeM.new Item("13", "ball"));
+		storeM.storeItem(new Item("12", "box"));
+		storeM.storeItem(new Item("13", "ball"));
 		System.out.println(storeM);
 		System.out.println(storeM.hasItem("box"));
 		storeM.fetchItem("box");

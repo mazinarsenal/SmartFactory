@@ -127,9 +127,9 @@ public class StoreModel {
 		}
 	}
 
-	public class Item {
-		String serialNum;
-		String type;
+	static final public class Item {
+		public String serialNum;
+		public String type;
 
 		public Item(String serialNum, String type) {
 			this.serialNum = serialNum;
