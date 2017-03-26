@@ -37,7 +37,8 @@ public class RobotModel {
 
 			} catch (InterruptedException ie) {
 			}
-			System.out.println("New location (x,y) = " + String.valueOf(robot.x) + "," + String.valueOf(robot.y));
+			// System.out.println("New location (x,y) = " +
+			// String.valueOf(robot.x) + "," + String.valueOf(robot.y));
 
 		}
 

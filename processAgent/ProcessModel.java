@@ -64,4 +64,8 @@ public class ProcessModel {
 		return this.missingMaterials.size() == 0;
 	}
 
+	void consumeMaterials() {
+		this.missingMaterials = new ArrayList<String>();
+	}
+
 }

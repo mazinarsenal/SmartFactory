@@ -80,16 +80,23 @@ public class RobotAgent extends Agent {
 		String distAgentName = actionStrings[8];
 		Item item = new Item(serialN, itemType);
 		// execute the action
-
+		System.out.println(this.getName() + "Moving to: " + from);
 		this.robotModel.goToDest(from[0], from[1], this.robotModel);
 		this.robotModel.pickup(item);
 		this.notifyAgent("pickup", item, sourceAgentName);
+		System.out.println(this.getName() + "Moving to: " + to);
 		this.robotModel.goToDest(to[0], to[1], this.robotModel);
+
 		this.robotModel.drop();
 		this.notifyAgent("receive", item, distAgentName);
 
 		this.robotModel.setReady();
 
+		MessageTemplate template = MessageTemplate.and(
+				MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET),
+				MessageTemplate.MatchPerformative(ACLMessage.CFP));
+
+		addBehaviour(new ContractNetBidder(this, template));
 		return "success";
 
 	}

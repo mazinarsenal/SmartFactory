@@ -59,7 +59,8 @@ public class WorkpieceAgent extends Agent {
 
 		if (this.stepN < this.recipe.getProcesses().size()) {
 			this.currentProcess = this.recipe.getProcesses().get(this.stepN);
-			this.contractProcess("assembleBearingBox");
+			// Use the process from the recipe
+			this.contractProcess(this.currentProcess.getName());
 			// this.contractStorage("store Box");
 			// this.contractTransport("move Box");
 			// this.contractStorage("store Bearing");
@@ -70,6 +71,7 @@ public class WorkpieceAgent extends Agent {
 			this.stepN += 1;
 		} else {
 			System.out.println(this.getAID() + " completed .. Terminating workpiece agent");
+			this.doDelete();
 		}
 	}
 
@@ -87,7 +89,7 @@ public class WorkpieceAgent extends Agent {
 			}
 			msg.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
 			// We want to receive a reply in 10 secs
-			msg.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
+			msg.setReplyByDate(new Date(System.currentTimeMillis() + 100000));
 			msg.setContent(process + " " + this.serialN);
 
 			System.out.println("Started contracting for task of type process");
@@ -160,7 +162,7 @@ public class WorkpieceAgent extends Agent {
 			// The opposite destination and source if the operation is fetch
 			if (operation.equals("fetch")) {
 				from = this.itemsToMove.get(itemType).location;
-				to = from = this.currentProcessDestination.location;
+				to = this.currentProcessDestination.location;
 				sourceAgentName = this.itemsToMove.get(itemType).agentAID.getName();
 				distAgentName = this.currentProcessDestination.agentAID.getName();
 
@@ -170,7 +172,7 @@ public class WorkpieceAgent extends Agent {
 			msg.setContent("move " + itemType + " " + this.serialN + " " + from[0] + " " + from[1] + " " + to[0] + " "
 					+ to[1] + " " + sourceAgentName + " " + distAgentName + " " + operation);
 
-			System.out.println("Started contracting for task of type transport");
+			System.out.println("Started contracting for task of type transport: " + msg.getContent());
 			addBehaviour(new TransportDelegation(this, msg));
 
 		} else {

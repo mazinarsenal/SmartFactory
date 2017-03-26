@@ -67,8 +67,8 @@ public class StoreAgent extends Agent {
 		this.location = (int[]) this.getArguments()[0];
 		this.initializeStorage((ArrayList<Item>) this.getArguments()[1]);
 		System.out.println(this.getAID().getName() + ": Initialized");
-		System.out.println(this.model.getFreeSpace());
-		System.out.println("Has box? " + this.model.hasItem("Box"));
+		// System.out.println(this.model.getFreeSpace());
+		// System.out.println("Has box? " + this.model.hasItem("Box"));
 
 	}
 
@@ -82,8 +82,8 @@ public class StoreAgent extends Agent {
 	private boolean evaluateAction(String action) {
 		String operation = action.split(" ")[0];
 		String type = action.split(" ")[1];
-		System.out.println("Evaluating operation: " + operation);
-		System.out.println(StoreAgent.OPERATIONS.contains(operation));
+		// System.out.println("Evaluating operation: " + operation);
+		// System.out.println(StoreAgent.OPERATIONS.contains(operation));
 		if (StoreAgent.OPERATIONS.contains(operation)) {
 			if (operation.equals("store")) {
 				// System.out.println(this.model.getFreeSpace());

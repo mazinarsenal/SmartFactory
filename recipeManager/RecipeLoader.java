@@ -16,6 +16,7 @@ public class RecipeLoader {
 
 	public Recipe load(String itemName) {
 
+		System.out.print("Loading recipe for: " + itemName);
 		JAXBContext jc;
 		Recipe recipe = new Recipe();
 		try {

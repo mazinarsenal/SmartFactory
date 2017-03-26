@@ -49,49 +49,60 @@ public class OrderHandlerAgent extends Agent {
 			e.printStackTrace();
 		}
 
+		this.container = getContainerController();
 		try {
 			this.setupHTTPServer();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
-		this.container = getContainerController();
 		this.createOrder("Order assembledBearingBox 2");
 
 	}
 
 	private void setupHTTPServer() throws Exception {
 
-		HttpServer server = HttpServer.create(new InetSocketAddress(8001), 0);
-		server.createContext("/order", new MyHandler());
+		HttpServer server = HttpServer.create(new InetSocketAddress(49152), 0);
+		server.createContext("/order", new MyHandler(this));
 		server.setExecutor(null); // creates a default executor
 		server.start();
 
 	}
 
 	private void createOrder(String order) {
-		this.serialN += 1;
+
 		String[] orderStrings = order.split(" ");
 		String itemName = orderStrings[1];
 		Object[] args = { itemName, this.serialN };
 		System.out.println("Processing: " + order);
 
-		// int qty = Integer.valueOf(orderStrings[2]);
-
+		int qty = Integer.valueOf(orderStrings[2]);
+		// Loop through
 		// Recipe recipe = this.recipeLoader.load(itemName);
 		// To Do : Create workpiece agent from recipe
-		String localName = "Workpiece_" + this.serialN;
-		try {
-			AgentController workpiece = this.container.createNewAgent(localName, "workpieceAgent.WorkpieceAgent", args);
-			workpiece.start();
-		} catch (Exception e) {
-			System.err.println("Exception while adding workpiece agent  " + this.serialN + " " + e);
-			e.printStackTrace();
+		for (int i = 0; i < qty; i++) {
+
+			this.serialN += 1;
+			String localName = "Workpiece_" + this.serialN;
+			try {
+				AgentController workpiece = this.container.createNewAgent(localName, "workpieceAgent.WorkpieceAgent",
+						args);
+				workpiece.start();
+			} catch (Exception e) {
+				System.err.println("Exception while adding workpiece agent  " + this.serialN + " " + e);
+				e.printStackTrace();
+			}
 		}
 
 	}
 
 	class MyHandler implements HttpHandler {
+
+		OrderHandlerAgent parent;
+
+		public MyHandler(OrderHandlerAgent parent) {
+			this.parent = parent;
+		}
+
 		public void handle(HttpExchange t) throws IOException {
 			String response;
 			// Order request format: Order itemName Qty
@@ -105,16 +116,19 @@ public class OrderHandlerAgent extends Agent {
 				System.out.println(t.getRequestMethod());
 				System.out.println("Request body:");
 				System.out.println(request);
+				t.sendResponseHeaders(200, response.length());
+				OutputStream os = t.getResponseBody();
+				os.write(response.getBytes());
+				os.close();
 				// Order is valid then create the order
-				OrderHandlerAgent.this.createOrder(request);
+				parent.createOrder(request);
 			} else {
 				response = "Invalid request ! Valid format: Order itemName Qty";
+				t.sendResponseHeaders(200, response.length());
+				OutputStream os = t.getResponseBody();
+				os.write(response.getBytes());
+				os.close();
 			}
-
-			t.sendResponseHeaders(200, response.length());
-			OutputStream os = t.getResponseBody();
-			os.write(response.getBytes());
-			os.close();
 
 		}
 
